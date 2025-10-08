@@ -3,14 +3,11 @@
 import os
 from collections.abc import Mapping
 from datasets import load_dataset
-from transformers import AutoModel
 from huggingface_hub import (
     scan_cache_dir,
     snapshot_download,
     list_models,
-    model_info,
     list_datasets,
-    dataset_info,
 )
 from huggingface_hub.hf_api import DatasetInfo, ModelInfo
 
