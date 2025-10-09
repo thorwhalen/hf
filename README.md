@@ -21,71 +21,60 @@ This package offers such a `Mapping`-based façade to Hugging Face datasets and 
 
 ## Examples
 
-This package provides four main classes, each offering a dictionary-like interface to different types of HuggingFace resources:
+This package provides four ready-to-use singleton instances, each offering a dictionary-like interface to different types of HuggingFace resources:
 
 ```python
-from hf import HfDatasets, HfModels, HfSpaces, HfPapers
-
-# Access to datasets
-datasets = HfDatasets()
-
-# Access to models  
-models = HfModels()
-
-# Access to spaces (interactive demos/apps)
-spaces = HfSpaces()
-
-# Access to research papers
-papers = HfPapers()
+from hf import datasets, models, spaces, papers
 ```
 
 ### Working with Datasets
 
-The `HfDatasets` class provides a dictionary-like interface to HuggingFace datasets:
-
-```python
-from hf import HfDatasets
-
-d = HfDatasets()
-```
+The `datasets` singleton provides a `Mapping` (i.e. read-only-dictionary-like) interface to HuggingFace datasets:
 
 #### List Local Datasets
 
-See what datasets you already have cached locally:
+As with dictionaries, `datasets` is an iterable. An iterable of keys. 
+The keys are repository ids for those datasets you've downloaded. 
+See what datasets you already have cached locally like this:
 
 ```python
-list(d)  # Lists locally cached datasets
+list(datasets)  # Lists locally cached datasets
 # ['stingning/ultrachat', 'allenai/WildChat-1M', 'google-research-datasets/go_emotions']
 ```
 
 #### Access Local Datasets
 
-Load any dataset using simple dictionary-style access:
+The values of `hf.datasets` are the `DatasetDict` 
+(from Huggingface's `datasets` package) instances that give you access to the dataset.
+If you already have the dataset downloaded locally, it will load it from there, 
+if not it will download it, then give it to you (and it will be cached locally 
+for the next time you access it). 
 
 ```python
-data = d['stingning/ultrachat']  # Loads the dataset
+data = datasets['stingning/ultrachat']  # Loads the dataset
 print(data)  # Shows dataset information and structure
 ```
 
 #### Search for Remote Datasets
 
-Discover new datasets by searching the HuggingFace hub:
+`hf.datasets` also offers a search functionality, so you can search "remote" 
+repositories:
 
 ```python
 # Search for music-related datasets
-search_results = HfDatasets.search('music', gated=False)
+search_results = datasets.search('music', gated=False)
 print(f"search_results is a {type(search_results).__name__}")  # It's a generator
 
-# Get the first result
+# Get the first result (it will be a `DatasetInfo` instance contain information on the dataset)
 result = next(search_results)
 print(f"Dataset ID: {result.id}")
 print(f"Description: {result.description[:80]}...")
 
 # Download and use it directly
-data = d[result]  # You can pass the DatasetInfo object directly
+data = datasets[result]  # You can pass the DatasetInfo object directly
 ```
 
-The `gated=False` was to make sure you get models that you have access to. 
+Note that the `gated=False` was to make sure you get models that you have access to. 
 For more search options, see the [HuggingFace Hub documentation](https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_datasets).
 
 #### A useful recipe: Get a table of result infos
@@ -122,12 +111,10 @@ results_table
 
 ### Working with Models
 
-The `HfModels` class provides the same dictionary-like interface for models:
+The `models` singleton provides the same dictionary-like interface for models:
 
 ```python
-from hf import HfModels
-
-models = HfModels()
+from hf import models
 ```
 
 #### Search for Models
@@ -159,12 +146,10 @@ list(models)  # Lists all locally cached models
 
 ### Working with Spaces
 
-The `HfSpaces` class provides access to HuggingFace Spaces (interactive ML demos and applications):
+The `spaces` singleton provides access to HuggingFace Spaces (interactive ML demos and applications):
 
 ```python
-from hf import HfSpaces
-
-spaces = HfSpaces()
+from hf import spaces
 ```
 
 #### Search for Spaces
@@ -196,12 +181,10 @@ list(spaces)  # Lists all locally cached spaces
 
 ### Working with Papers
 
-The `HfPapers` class provides access to research papers hosted on HuggingFace:
+The `papers` singleton provides access to research papers hosted on HuggingFace:
 
 ```python
-from hf import HfPapers
-
-papers = HfPapers()
+from hf import papers
 ```
 
 #### Search for Papers
@@ -226,15 +209,45 @@ print(f"Abstract: {paper_info.summary[:100]}...")
 
 Note: Papers are metadata objects only—they contain information about research papers but don't have downloadable files like datasets or models.
 
+### Getting Repository Sizes
+
+You can check the size of any repository before downloading using the `get_size` function. The `repo_type` parameter is required to avoid ambiguity when repositories exist as multiple types:
+
+```python
+from hf import get_size
+
+# Get size of a dataset (specify repo_type explicitly)
+dataset_size = get_size('ccmusic-database/music_genre', repo_type='dataset')
+print(f"Dataset size: {dataset_size:.2f} GiB")
+
+# Get size of a model 
+model_size = get_size('ccmusic-database/music_genre', repo_type='model')
+print(f"Model size: {model_size:.2f} GiB")
+
+# Using RepoType enum for type safety
+from hf.base import RepoType
+size_with_enum = get_size('some-repo', repo_type=RepoType.DATASET)
+
+# Get size in different units (e.g., bytes)
+size_in_bytes = get_size('some-repo', repo_type='dataset', unit_bytes=1)
+```
+
+**Pro tip**: Use the singleton instances for automatic repo_type handling:
+```python
+# These automatically know their repo_type
+dataset_size = datasets.get_size('ccmusic-database/music_genre')
+model_size = models.get_size('ccmusic-database/music_genre')
+```
+
 ### Unified Interface
 
-The beauty of this approach is that whether you're working with datasets, models, spaces, or papers, the interface remains familiar and consistent—just like working with Python dictionaries. All four resource types support the same core operations:
+The beauty of this approach is that whether you're working with datasets, models, spaces, or papers, the interface remains familiar and consistent—just like working with Python dictionaries. All four singleton instances support the same core operations:
 
-- **Dictionary-style access**: `resource = mapping[key]`
-- **Local listing**: `list(mapping)` 
-- **Remote searching**: `mapping.search(query)`
-- **Existence checking**: `key in mapping`
+- **Dictionary-style access**: `resource = datasets[key]`, `model_path = models[key]`
+- **Local listing**: `list(datasets)`, `list(models)` 
+- **Remote searching**: `datasets.search(query)`, `models.search(query)`
+- **Existence checking**: `key in datasets`, `key in models`
 
-This unified interface means you can switch between different types of HuggingFace resources without learning new APIs—it's all just dictionaries!
+This unified interface means you can switch between different types of HuggingFace resources without learning new APIs—it's all just dictionaries! And since they're singleton instances, they're always ready to use without any setup.
 
 

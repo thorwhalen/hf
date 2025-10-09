@@ -152,7 +152,7 @@ def ensure_id(obj):
 
 
 def get_size(
-    repo_id: str, *, unit_bytes: int = DFLT_SIZE_UNIT_BYTES, repo_type: str = None
+    repo_id: str, *, unit_bytes: int = DFLT_SIZE_UNIT_BYTES, repo_type: RepoType
 ) -> float:
     """
     Calculates the total size of a Hugging Face repository (model, dataset, or space) in GiB.
@@ -160,44 +160,36 @@ def get_size(
     Args:
         repo_id (str): The ID of the repository (e.g., "bert-base-uncased", "MMMU/MMMU", or "spaces/gradio/chatbot").
         unit_bytes (int): Number of bytes in the desired unit. Default is 1024**3 for GiB. For bytes, enter 1.
-        repo_type (str): Type of repository ("model", "dataset", "space"). If None, tries model first, then dataset, then space.
+        repo_type (RepoType): Type of repository ("model", "dataset", "space"). Required parameter.
                         Papers don't have file sizes, so they're not supported.
 
     Returns:
         float: The total repository size in the specified unit.
 
     Raises:
-        ValueError: If repo_type is "paper" (papers don't have file sizes).
+        ValueError: If repo_type is "paper" (papers don't have file sizes) or if repo_type is invalid.
     """
-    if repo_type == "paper":
+    # Convert enum to string if needed
+    repo_type_str = repo_type.value if hasattr(repo_type, 'value') else str(repo_type)
+
+    if repo_type_str == "paper":
         raise ValueError("Papers don't have file sizes - they are metadata objects")
+
+    if repo_type_str not in repo_type_helpers:
+        raise ValueError(
+            f"Invalid repo_type: {repo_type_str}. Must be one of: {list(repo_type_helpers.keys())}"
+        )
 
     api = _get_hf_api()
     repo_id = ensure_id(repo_id)
 
-    # If repo_type is specified, use it directly
-    if repo_type == "model":
+    # Use repo_type directly based on validation
+    if repo_type_str == "model":
         info = api.model_info(repo_id=repo_id, files_metadata=True)
-    elif repo_type == "dataset":
+    elif repo_type_str == "dataset":
         info = api.dataset_info(repo_id=repo_id, files_metadata=True)
-    elif repo_type == "space":
+    elif repo_type_str == "space":
         info = api.space_info(repo_id=repo_id, files_metadata=True)
-    else:
-        # Try model first, then dataset, then space
-        for try_repo_type, info_method in [
-            ("model", api.model_info),
-            ("dataset", api.dataset_info),
-            ("space", api.space_info),
-        ]:
-            try:
-                info = info_method(repo_id=repo_id, files_metadata=True)
-                break
-            except Exception:
-                continue
-        else:
-            raise ValueError(
-                f"Repository '{repo_id}' not found as model, dataset, or space"
-            )
 
     is_not_none = lambda s: s is not None
     total_size_bytes = sum(
@@ -416,3 +408,11 @@ class HfPapers(HfMapping):
     """
 
     repo_type = RepoType.PAPER
+
+
+# ------------------------------------------------------------------------------------
+# Convenience instances (lowercase by convention)
+datasets = HfDatasets()
+models = HfModels()
+spaces = HfSpaces()
+papers = HfPapers()

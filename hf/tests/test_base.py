@@ -3,6 +3,10 @@
 import pytest
 import typing
 from hf.base import (
+    datasets,
+    models,
+    spaces,
+    papers,
     HfDatasets,
     HfModels,
     HfSpaces,
@@ -99,62 +103,70 @@ def test_hf_papers_class_attributes():
 
 
 def test_hf_datasets_instance():
-    """Test basic HfDatasets functionality."""
-    d = HfDatasets()
+    """Test basic HfDatasets functionality using the singleton."""
+    # Test that the singleton is already instantiated and ready to use
+    assert hasattr(datasets, 'repo_type')
+    assert datasets.repo_type == "dataset"
 
     # Test that it's iterable (even if empty)
-    list(d)  # Should not raise an error
+    list(datasets)  # Should not raise an error
 
     # Test length
-    len(d)  # Should not raise an error
+    len(datasets)  # Should not raise an error
 
     # Test _keys method
-    keys = d._keys()
+    keys = datasets._keys()
     assert isinstance(keys, list)
 
 
 def test_hf_models_instance():
-    """Test basic HfModels functionality."""
-    m = HfModels()
+    """Test basic HfModels functionality using the singleton."""
+    # Test that the singleton is already instantiated and ready to use
+    assert hasattr(models, 'repo_type')
+    assert models.repo_type == "model"
 
     # Test that it's iterable (even if empty)
-    list(m)  # Should not raise an error
+    list(models)  # Should not raise an error
 
     # Test length
-    len(m)  # Should not raise an error
+    len(models)  # Should not raise an error
 
     # Test _keys method
-    keys = m._keys()
+    keys = models._keys()
     assert isinstance(keys, list)
 
 
 def test_hf_spaces_instance():
-    """Test basic HfSpaces functionality."""
-    s = HfSpaces()
+    """Test basic HfSpaces functionality using the singleton."""
+    # Test that the singleton is already instantiated and ready to use
+    assert hasattr(spaces, 'repo_type')
+    assert spaces.repo_type == "space"
 
     # Test that it's iterable (even if empty)
-    list(s)  # Should not raise an error
+    list(spaces)  # Should not raise an error
 
     # Test length
-    len(s)  # Should not raise an error
+    len(spaces)  # Should not raise an error
 
     # Test _keys method
-    keys = s._keys()
+    keys = spaces._keys()
     assert isinstance(keys, list)
 
 
 def test_hf_papers_instance():
-    """Test basic HfPapers functionality."""
-    p = HfPapers()
+    """Test basic HfPapers functionality using the singleton."""
+    # Test that the singleton is already instantiated and ready to use
+    assert hasattr(papers, 'repo_type')
+    assert papers.repo_type == "paper"
 
     # Test that it's iterable (even if empty)
-    list(p)  # Should not raise an error
+    list(papers)  # Should not raise an error
 
     # Test length
-    len(p)  # Should not raise an error
+    len(papers)  # Should not raise an error
 
     # Test _keys method
-    keys = p._keys()
+    keys = papers._keys()
     assert isinstance(keys, list)
 
 
@@ -173,7 +185,7 @@ def test_list_local_repos():
 
 
 def test_get_size_function_signature():
-    """Test that get_size has the correct signature and default parameters."""
+    """Test that get_size has the correct signature and required parameters."""
     import inspect
 
     sig = inspect.signature(get_size)
@@ -184,51 +196,67 @@ def test_get_size_function_signature():
     assert 'unit_bytes' in params
     assert 'repo_type' in params
 
-    # repo_type should have None as default
-    assert sig.parameters['repo_type'].default is None
+    # repo_type should be required (no default)
+    assert sig.parameters['repo_type'].default == inspect.Parameter.empty
 
     # unit_bytes should have a default value
     assert sig.parameters['unit_bytes'].default is not None
 
 
-def test_hf_mapping_get_size_methods():
-    """Test that all HfMapping subclasses have get_size methods."""
-    d = HfDatasets()
-    m = HfModels()
-    s = HfSpaces()
-    p = HfPapers()
+def test_get_size_validation():
+    """Test that get_size validates repo_type parameter."""
+    # Test with valid repo_types
+    from hf.base import RepoType
 
+    # Should not raise for valid types (might raise network errors, but not validation errors)
+    try:
+        get_size("lysandre/test-model", repo_type=RepoType.MODEL)
+    except Exception as e:
+        # Only network errors are expected, not validation errors
+        assert (
+            "Repository" in str(e) or "model" in str(e).lower() or "lysandre" in str(e)
+        )
+
+    # Test with invalid repo_type
+    with pytest.raises(ValueError, match="Invalid repo_type"):
+        get_size("some/repo", repo_type="invalid_type")
+
+    # Test with paper repo_type
+    with pytest.raises(ValueError, match="Papers don't have file sizes"):
+        get_size("some/paper", repo_type=RepoType.PAPER)
+
+
+def test_hf_mapping_get_size_methods():
+    """Test that all singleton instances have get_size methods."""
     # Should have get_size methods
-    for instance in [d, m, s, p]:
+    for instance in [datasets, models, spaces, papers]:
         assert hasattr(instance, 'get_size')
         assert callable(instance.get_size)
 
 
 def test_datasets_integration():
     """
-    Integration test for HfDatasets covering searching, downloading,
+    Integration test for datasets singleton covering searching, downloading,
     sizing, and local dataset management.
     """
-    d = HfDatasets()
-
     key1 = "llamafactory/tiny-supervised-dataset"
     key2 = "ucirvine/sms_spam"
 
-    # Test the get_size function (does NOT download the data)
-    assert round(get_size(key1), 4) == 0.0001
+    # Test the get_size function (does NOT download the data) - now requires repo_type
+    assert round(get_size(key1, repo_type="dataset"), 4) == 0.0001
     # Get size in bytes
-    assert get_size(key2, unit_bytes=1) == 365026.0
+    assert get_size(key2, unit_bytes=1, repo_type="dataset") == 365026.0
 
     # Test search functionality
-    search_results = list(d.search('tiny', limit=10))
+    search_results = list(datasets.search('tiny', limit=10))
     assert len(search_results) > 0
     assert any('tiny' in result.id.lower() for result in search_results)
 
     # Test download and load
-    val1 = d[key1]
+    val1 = datasets[key1]
 
     # Test __contains__ - now we should have the key1 in local cache
-    assert key1 in d
+    assert key1 in datasets
 
     # Test the contents of val1 are as expected
     assert list(val1) == ['train']
@@ -236,67 +264,67 @@ def test_datasets_integration():
     assert val1['train'].num_rows == 300
 
     # Test that the dataset is now in local listings
-    local_datasets = list(d)
+    local_datasets = list(datasets)
     assert key1 in local_datasets
 
     # Test instance get_size method (should use dataset repo_type automatically)
-    size_via_instance = d.get_size(key1)
+    size_via_instance = datasets.get_size(key1)
     assert round(size_via_instance, 4) == 0.0001
 
 
 def test_models_integration():
     """
-    Integration test for HfModels covering searching, downloading,
+    Integration test for models singleton covering searching, downloading,
     and local model management.
     """
-    m = HfModels()
-
     model_key = "lysandre/test-model"
 
-    # Test the get_size function for a model
+    # Test the get_size function for a model - now requires repo_type
     model_size = get_size(model_key, repo_type="model")
     assert isinstance(model_size, float)
     assert model_size > 0
 
     # Test search functionality
-    search_results = list(m.search('test', limit=10))
+    search_results = list(models.search('test', limit=10))
     assert len(search_results) > 0
     assert any('test' in result.id.lower() for result in search_results)
 
     # Test download - this returns the path to the downloaded model
-    model_path = m[model_key]
+    model_path = models[model_key]
     assert isinstance(model_path, str)
     assert model_path  # Should be non-empty
 
     # Test __contains__ - now we should have the model in local cache
-    assert model_key in m
+    assert model_key in models
 
     # Test that the model is now in local listings
-    local_models = list(m)
+    local_models = list(models)
     assert model_key in local_models
 
     # Test instance get_size method (should use model repo_type automatically)
-    size_via_instance = m.get_size(model_key)
+    size_via_instance = models.get_size(model_key)
     assert isinstance(size_via_instance, float)
     assert size_via_instance > 0
 
 
 def test_cross_type_get_size():
-    """Test get_size with auto-detection across model and dataset types."""
-    # Test with a known dataset
-    dataset_size = get_size("ucirvine/sms_spam")  # Auto-detection should work
+    """Test get_size with explicit repo_type specification."""
+    # Test with a known dataset - must specify repo_type
+    dataset_size = get_size("ucirvine/sms_spam", repo_type="dataset")
     assert dataset_size == 365026.0 / (1024**3)  # Default unit is GiB
 
-    # Test with a known model
-    model_size = get_size("lysandre/test-model")  # Auto-detection should work
+    # Test with a known model - must specify repo_type
+    model_size = get_size("lysandre/test-model", repo_type="model")
     assert isinstance(model_size, float)
     assert model_size > 0
 
-    # Test explicit repo_type specification
-    explicit_dataset_size = get_size("ucirvine/sms_spam", repo_type="dataset")
+    # Test using enum values
+    from hf.base import RepoType
+
+    explicit_dataset_size = get_size("ucirvine/sms_spam", repo_type=RepoType.DATASET)
     assert explicit_dataset_size == dataset_size
 
-    explicit_model_size = get_size("lysandre/test-model", repo_type="model")
+    explicit_model_size = get_size("lysandre/test-model", repo_type=RepoType.MODEL)
     assert explicit_model_size == model_size
 
 
@@ -308,17 +336,14 @@ def test_get_size_paper_error():
 
 def test_spaces_and_papers_integration():
     """
-    Integration test for HfSpaces and HfPapers covering searching and info retrieval.
+    Integration test for spaces and papers singletons covering searching and info retrieval.
     """
-    s = HfSpaces()
-    p = HfPapers()
-
     # Test space search functionality - just check we get results
-    space_search_results = list(s.search('demo', limit=5))
+    space_search_results = list(spaces.search('demo', limit=5))
     assert len(space_search_results) > 0
 
     # Test paper search functionality
-    paper_search_results = list(p.search('transformer', limit=5))
+    paper_search_results = list(papers.search('transformer', limit=5))
     assert len(paper_search_results) > 0
     # Check that at least one result has 'transformer' in title or abstract
     has_transformer = any(
@@ -331,13 +356,13 @@ def test_spaces_and_papers_integration():
     # Test accessing specific items (if they exist)
     if space_search_results:
         first_space = space_search_results[0]
-        space_info = s[first_space.id]
+        space_info = spaces[first_space.id]
         assert space_info is not None
         assert hasattr(space_info, 'id')
 
     if paper_search_results:
         first_paper = paper_search_results[0]
-        paper_info = p[first_paper.id]
+        paper_info = papers[first_paper.id]
         assert paper_info is not None
         assert hasattr(paper_info, 'id')
 
@@ -365,6 +390,33 @@ def test_repo_type_enum():
     assert RepoType.MODEL.value == "model"
     assert RepoType.SPACE.value == "space"
     assert RepoType.PAPER.value == "paper"
+
+
+def test_singleton_instances():
+    """Test that the singleton instances are properly configured and ready to use."""
+    # Test that all singletons are available and properly configured
+    assert hasattr(datasets, 'repo_type') and datasets.repo_type == "dataset"
+    assert hasattr(models, 'repo_type') and models.repo_type == "model"
+    assert hasattr(spaces, 'repo_type') and spaces.repo_type == "space"
+    assert hasattr(papers, 'repo_type') and papers.repo_type == "paper"
+
+    # Test that they have the required methods
+    for singleton in [datasets, models, spaces, papers]:
+        assert hasattr(singleton, 'search')
+        assert hasattr(singleton, 'get_size')
+        assert hasattr(singleton, '__getitem__')
+        assert hasattr(singleton, '__iter__')
+        assert hasattr(singleton, '__len__')
+        assert hasattr(singleton, '__contains__')
+
+    # Test that they are different instances
+    assert datasets is not models
+    assert models is not spaces
+    assert spaces is not papers
+
+    # Test that we can use them immediately without instantiation
+    assert len(datasets) >= 0  # Should work immediately
+    assert len(models) >= 0  # Should work immediately
 
 
 def test_parameterized_hf_mapping():
