@@ -37,6 +37,11 @@ jobs:
           enable: missing-module-docstring
           ignore: tests,examples,scrap
 
+      - name: Prepare Hugging Face cache
+        run: |
+          mkdir -p /home/runner/.cache/huggingface/hub
+          echo "HF_HUB_CACHE=/home/runner/.cache/huggingface/hub" >> $GITHUB_ENV
+          
       - name: Pytest Validation
         uses: i2mint/isee/actions/pytest-validation@master
         with:
