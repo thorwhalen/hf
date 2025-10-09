@@ -95,18 +95,21 @@ jobs:
         with:
           tag: $VERSION
 
-  github-pages:
-    name: Publish GitHub Pages
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: i2mint/epythet/actions/publish-github-pages@master
-        with:
-          # IMPORTANT Note: You don't need to specify GITHUB_TOKEN in your repo secrets.
-          # GITHUB_TOKEN is special & automatically provided to your workflow run.
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+  # Removing github-pages because it's not working.
+  # See [this CI problem with publishing docs](https://github.com/thorwhalen/hf/actions/runs/18390588925/job/52399860182). 
+  # It's [this CI](https://github.com/thorwhalen/hf/blob/665d15f1c090090c161557d64853091cff00f213/.github/workflows/ci.yml) spec
+  # github-pages:
+  #   name: Publish GitHub Pages
+  #   if: "!contains(github.event.head_commit.message, '[skip ci]') && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+  #   needs: publish
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: i2mint/epythet/actions/publish-github-pages@master
+  #       with:
+  #         # IMPORTANT Note: You don't need to specify GITHUB_TOKEN in your repo secrets.
+  #         # GITHUB_TOKEN is special & automatically provided to your workflow run.
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Note: This bit has been added for hf, because of some (new) problems publishing docs.
-      - name: Push to gh-pages
-        run: git push https://x-access-token:${{ secrets.GITHUB_GHPAGES_PAT }}@github.com/thorwhalen/hf.git gh-pages
+  #     # Note: This bit has been added for hf, because of some (new) problems publishing docs.
+  #     - name: Push to gh-pages
+  #       run: git push https://x-access-token:${{ secrets.GITHUB_GHPAGES_PAT }}@github.com/thorwhalen/hf.git gh-pages
