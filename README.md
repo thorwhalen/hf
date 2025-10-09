@@ -1,6 +1,6 @@
 # hf
 
-Simple Mapping interface to HuggingFace
+Simple MappinThis package offers such a `Mapping`-based façade to all four types of Hugging Face resources—datasets, models, spaces, and papers—allowing you to browse, query, and access them as if they were simple Python dictionaries. The goal isn't to replace the original API, but to provide a thin, ergonomic layer for the most common operations — so you can spend less time remembering syntax, and more time working with data. interface to HuggingFace
 
 This package offers such a `Mapping`-based façade to all four types of Hugging Face resources—datasets, models, spaces, and papers—allowing you to browse, query, and access them as if they were simple Python dictionaries. The goal isn't to replace the original API, but to provide a thin, ergonomic layer for the most common operations — so you can spend less time remembering syntax, and more time working with data.
 
@@ -24,21 +24,21 @@ This package offers such a `Mapping`-based façade to Hugging Face datasets and 
 This package provides four ready-to-use singleton instances, each offering a dictionary-like interface to different types of HuggingFace resources:
 
 ```python
-from hf import datasets, models, spaces, papers
+import hf
 ```
 
 ### Working with Datasets
 
-The `datasets` singleton provides a `Mapping` (i.e. read-only-dictionary-like) interface to HuggingFace datasets:
+The `hf.datasets` singleton provides a `Mapping` (i.e. read-only-dictionary-like) interface to HuggingFace datasets:
 
 #### List Local Datasets
 
-As with dictionaries, `datasets` is an iterable. An iterable of keys. 
+As with dictionaries, `hf.datasets` is an iterable. An iterable of keys. 
 The keys are repository ids for those datasets you've downloaded. 
 See what datasets you already have cached locally like this:
 
 ```python
-list(datasets)  # Lists locally cached datasets
+list(hf.datasets)  # Lists locally cached datasets
 # ['stingning/ultrachat', 'allenai/WildChat-1M', 'google-research-datasets/go_emotions']
 ```
 
@@ -51,7 +51,7 @@ if not it will download it, then give it to you (and it will be cached locally
 for the next time you access it). 
 
 ```python
-data = datasets['stingning/ultrachat']  # Loads the dataset
+data = hf.datasets['stingning/ultrachat']  # Loads the dataset
 print(data)  # Shows dataset information and structure
 ```
 
@@ -62,7 +62,7 @@ repositories:
 
 ```python
 # Search for music-related datasets
-search_results = datasets.search('music', gated=False)
+search_results = hf.datasets.search('music', gated=False)
 print(f"search_results is a {type(search_results).__name__}")  # It's a generator
 
 # Get the first result (it will be a `DatasetInfo` instance contain information on the dataset)
@@ -71,7 +71,7 @@ print(f"Dataset ID: {result.id}")
 print(f"Description: {result.description[:80]}...")
 
 # Download and use it directly
-data = datasets[result]  # You can pass the DatasetInfo object directly
+data = hf.datasets[result]  # You can pass the DatasetInfo object directly
 ```
 
 Note that the `gated=False` was to make sure you get models that you have access to. 
@@ -111,18 +111,14 @@ results_table
 
 ### Working with Models
 
-The `models` singleton provides the same dictionary-like interface for models:
-
-```python
-from hf import models
-```
+The `hf.models` singleton provides the same dictionary-like interface for models:
 
 #### Search for Models
 
 Find models by keywords:
 
 ```python
-model_search_results = models.search('embeddings', gated=False)
+model_search_results = hf.models.search('embeddings', gated=False)
 model_result = next(model_search_results)
 print(f"Model: {model_result.id}")
 ```
@@ -132,7 +128,7 @@ print(f"Model: {model_result.id}")
 Get the local path to a model (downloads if not cached):
 
 ```python
-model_path = models[model_result]
+model_path = hf.models[model_result]
 print(f"Model downloaded to: {model_path}")
 ```
 
@@ -141,23 +137,19 @@ print(f"Model downloaded to: {model_path}")
 See what models you have cached:
 
 ```python
-list(models)  # Lists all locally cached models
+list(hf.models)  # Lists all locally cached models
 ```
 
 ### Working with Spaces
 
-The `spaces` singleton provides access to HuggingFace Spaces (interactive ML demos and applications):
-
-```python
-from hf import spaces
-```
+The `hf.spaces` singleton provides access to HuggingFace Spaces (interactive ML demos and applications):
 
 #### Search for Spaces
 
 Find interesting Spaces by keywords:
 
 ```python
-space_search_results = spaces.search('gradio', limit=5)
+space_search_results = hf.spaces.search('gradio', limit=5)
 space_result = next(space_search_results)
 print(f"Space: {space_result.id}")
 ```
@@ -167,7 +159,7 @@ print(f"Space: {space_result.id}")
 Get detailed information about a Space:
 
 ```python
-space_info = spaces[space_result]
+space_info = hf.spaces[space_result]
 print(f"Space info: {space_info}")
 ```
 
@@ -176,23 +168,19 @@ print(f"Space info: {space_info}")
 See what spaces you have cached locally:
 
 ```python
-list(spaces)  # Lists all locally cached spaces
+list(hf.spaces)  # Lists all locally cached spaces
 ```
 
 ### Working with Papers
 
-The `papers` singleton provides access to research papers hosted on HuggingFace:
-
-```python
-from hf import papers
-```
+The `hf.papers` singleton provides access to research papers hosted on HuggingFace:
 
 #### Search for Papers
 
 Find research papers by topic:
 
 ```python
-paper_search_results = papers.search('transformer', limit=5)
+paper_search_results = hf.papers.search('transformer', limit=5)
 paper_result = next(paper_search_results)
 print(f"Paper: {paper_result.id}")
 ```
@@ -202,7 +190,7 @@ print(f"Paper: {paper_result.id}")
 Get detailed information about a paper:
 
 ```python
-paper_info = papers[paper_result]
+paper_info = hf.papers[paper_result]
 print(f"Paper title: {paper_info.title}")
 print(f"Abstract: {paper_info.summary[:100]}...")
 ```
@@ -235,19 +223,148 @@ size_in_bytes = get_size('some-repo', repo_type='dataset', unit_bytes=1)
 **Pro tip**: Use the singleton instances for automatic repo_type handling:
 ```python
 # These automatically know their repo_type
-dataset_size = datasets.get_size('ccmusic-database/music_genre')
-model_size = models.get_size('ccmusic-database/music_genre')
+dataset_size = hf.datasets.get_size('ccmusic-database/music_genre')
+model_size = hf.models.get_size('ccmusic-database/music_genre')
 ```
 
 ### Unified Interface
 
 The beauty of this approach is that whether you're working with datasets, models, spaces, or papers, the interface remains familiar and consistent—just like working with Python dictionaries. All four singleton instances support the same core operations:
 
-- **Dictionary-style access**: `resource = datasets[key]`, `model_path = models[key]`
-- **Local listing**: `list(datasets)`, `list(models)` 
-- **Remote searching**: `datasets.search(query)`, `models.search(query)`
-- **Existence checking**: `key in datasets`, `key in models`
+- **Dictionary-style access**: `resource = hf.datasets[key]`, `model_path = hf.models[key]`
+- **Local listing**: `list(hf.datasets)`, `list(hf.models)` 
+- **Remote searching**: `hf.datasets.search(query)`, `hf.models.search(query)`
+- **Existence checking**: `key in hf.datasets`, `key in hf.models`
 
 This unified interface means you can switch between different types of HuggingFace resources without learning new APIs—it's all just dictionaries! And since they're singleton instances, they're always ready to use without any setup.
 
 
+## Design & Architecture
+
+### Design Philosophy
+
+This package is designed as a **thin façade** over the excellent [`huggingface_hub`](https://github.com/huggingface/huggingface_hub) and [`datasets`](https://github.com/huggingface/datasets) libraries. Rather than reinventing functionality, it provides a unified `Mapping` interface that wraps the most common operations, making them feel like native Python dictionary operations.
+
+The design balances two sometimes-competing goals:
+1. **Simplicity**: Keep the codebase small, readable, and maintainable
+2. **Single Source of Truth (SSOT)**: Minimize hardcoded knowledge about the underlying APIs
+
+Ideally, this interface would be *entirely* auto-generated through static analysis of the wrapped packages. While we achieve this partially, practical constraints require some manual intervention—but we've minimized it as much as possible.
+
+### Key Architectural Patterns
+
+#### 1. Configuration-Driven Design (SSOT)
+
+The `repo_type_helpers` dictionary serves as the **single source of truth** for all repo-type-specific behavior:
+
+```python
+repo_type_helpers = dict(
+    dataset=dict(
+        loader_func=load_dataset,
+        search_func=list_datasets,
+    ),
+    model=dict(
+        loader_func=snapshot_download,
+        search_func=list_models,
+    ),
+    # ... etc
+)
+```
+
+This declarative approach means:
+- Adding a new repo type requires only updating this configuration
+- No duplication of logic across different repo types
+- Clear visibility of how each type differs
+
+#### 2. Dynamic Signature Injection
+
+Rather than manually replicating the signatures of wrapped functions (which would violate SSOT), we use **signature extraction and injection** via the `sign_kwargs_with` decorator:
+
+```python
+@sign_kwargs_with(search_func)
+def search(self, filter, **kwargs):
+    return self.search_func(filter=filter, **kwargs)
+```
+
+This means:
+- Each `.search()` method automatically inherits the correct signature from its underlying function
+- IDEs and type checkers see the actual parameters available
+- When HuggingFace updates their APIs, our signatures update automatically
+- Documentation stays accurate without manual synchronization
+
+**Note**: The `list_papers` function required special handling (`_list_papers` wrapper) because it uses `query` instead of `filter` as its parameter name. This is the type of pragmatic compromise we make—we normalize the interface rather than exposing the inconsistency.
+
+#### 3. Separation of Concerns
+
+The architecture cleanly separates:
+
+- **Configuration** (`repo_type_helpers`): What differs between types
+- **Base functionality** (`HfMapping`): Shared behavior for all types
+- **Type-specific classes** (`HfDatasets`, `HfModels`, etc.): Minimal subclasses that mainly provide:
+  - Clear, discoverable class names
+  - Type-specific documentation
+  - Future extensibility points
+- **Convenience layer** (module-level singletons): Zero-setup access for users
+
+#### 4. Module-Level Singletons
+
+The pre-instantiated `datasets`, `models`, `spaces`, and `papers` instances follow Python's **convenience instance pattern** (seen in `sys.stdout`, `np.random`, etc.):
+
+```python
+# Ready to use immediately
+datasets = HfDatasets()
+models = HfModels()
+```
+
+This works because these instances:
+- Have no mutable state
+- Require no configuration for basic use
+- Represent logical singletons ("the datasets mapping")
+
+#### 5. Progressive Disclosure
+
+The API supports multiple levels of sophistication:
+
+```python
+# Simplest: Use pre-configured singletons
+data = hf.datasets['some/dataset']
+
+# Advanced: Create custom instances with configuration
+my_datasets = HfDatasets()
+
+# Power user: Parameterized mapping for dynamic repo types
+custom = HfMapping(RepoType.DATASET)
+```
+
+### Design Compromises
+
+Several compromises were made for pragmatism:
+
+1. **Manual wrappers**: `_list_papers` normalizes the papers API to match others
+2. **Enum + string hybrid**: `RepoType(str, Enum)` allows both type safety and string convenience
+3. **Explicit repo_type in get_size**: Required parameter to avoid ambiguity when repos exist as multiple types
+4. **Signature injection limitations**: Works well for keyword arguments but can't handle complex overloads
+
+### Contributing Guidelines
+
+When contributing to this package, please maintain these principles:
+
+**✅ DO:**
+- Add configuration to `repo_type_helpers` rather than creating new methods
+- Use signature extraction (`sign_kwargs_with`) when wrapping functions with many parameters
+- Keep `HfMapping` generic and push specialization to configuration
+- Document *why* special cases exist (like `_list_papers`)
+- Test against actual HuggingFace APIs to catch signature drift
+
+**❌ AVOID:**
+- Duplicating knowledge about wrapped APIs
+- Hardcoding parameter lists or types that could be extracted
+- Adding stateful behavior to mapping instances
+- Creating wrapper methods that simply pass through to underlying functions
+
+**When in doubt:**
+- Ask "Could this be driven by configuration?"
+- Prefer declarative patterns over imperative logic
+- Keep the codebase small and the configuration visible
+
+The goal is a package where 80% of the code is just wiring and configuration, and the HuggingFace packages do the actual work. This maximizes maintainability and minimizes drift as those packages evolve.

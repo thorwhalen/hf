@@ -343,7 +343,7 @@ def test_spaces_and_papers_integration():
     assert len(space_search_results) > 0
 
     # Test paper search functionality
-    paper_search_results = list(papers.search('transformer', limit=5))
+    paper_search_results = list(papers.search('transformer'))  # Note: No limit arg for papers search!!
     assert len(paper_search_results) > 0
     # Check that at least one result has 'transformer' in title or abstract
     has_transformer = any(
@@ -443,3 +443,41 @@ def test_parameterized_hf_mapping():
         assert hasattr(mapping, 'search_func')
         assert mapping.loader_func is not None
         assert mapping.search_func is not None
+
+
+def test_dynamic_search_signatures():
+    """Test that search methods automatically have the correct signatures."""
+    from inspect import signature
+    from huggingface_hub import list_datasets, list_models
+
+    # Get the signatures
+    datasets_search_sig = signature(datasets.search)
+    models_search_sig = signature(models.search)
+    list_datasets_sig = signature(list_datasets)
+    list_models_sig = signature(list_models)
+
+    # The parameters should match (excluding 'self' for the bound methods)
+    datasets_params = list(datasets_search_sig.parameters.keys())
+    list_datasets_params = list(list_datasets_sig.parameters.keys())
+
+    models_params = list(models_search_sig.parameters.keys())
+    list_models_params = list(list_models_sig.parameters.keys())
+
+    # Compare parameter names (datasets.search should have same params as list_datasets)
+    assert (
+        datasets_params == list_datasets_params
+    ), f"datasets.search params {datasets_params} don't match list_datasets params {list_datasets_params}"
+    assert (
+        models_params == list_models_params
+    ), f"models.search params {models_params} don't match list_models params {list_models_params}"
+
+    # Test that the methods work with their native signatures
+    try:
+        # These should work because signatures are correctly aligned
+        datasets_results = list(datasets.search(filter='tiny', limit=2))
+        models_results = list(models.search(filter='test', limit=2))
+
+        assert len(datasets_results) >= 0
+        assert len(models_results) >= 0
+    except Exception as e:
+        pytest.fail(f"Dynamic signature search methods failed: {e}")

@@ -99,17 +99,13 @@ def sign_kwargs_with(source_func, first_arg_index=0):
     return change_signature_of_variadic
 
 
-def _search_papers_normalized(filter=None, **kwargs):
+# Note: Needs manual work since list_papers doesn't ressemble other list_* functions
+def _list_papers(filter=None, *, token=None):
     """
     Wrapper to normalize list_papers interface to use 'filter' parameter like other search functions.
     Note: list_papers only supports 'query' and 'token' parameters, so other kwargs are filtered out.
     """
-    # Only pass supported parameters to list_papers
-    supported_kwargs = {}
-    if 'token' in kwargs:
-        supported_kwargs['token'] = kwargs['token']
-
-    return list_papers(query=filter, **supported_kwargs)
+    return list_papers(query=filter, token=token)
 
 
 # Single Source of Truth for repo type configurations
@@ -128,7 +124,7 @@ repo_type_helpers = dict(
     ),
     paper=dict(
         loader_func=paper_info,
-        search_func=_search_papers_normalized,
+        search_func=_list_papers,
     ),
 )
 
@@ -217,6 +213,32 @@ def list_local_repos(repo_type):
     return [repo.repo_id for repo in cache_info.repos if repo.repo_type == repo_type]
 
 
+def _create_search_method(search_func):
+    """Create a search method with the signature of the given search_func."""
+
+    @sign_kwargs_with(search_func)
+    def search(self, filter, **kwargs):
+        """
+        Search for remote repositories that match the query.
+
+        Args:
+            filter: Search query string.
+            **kwargs: Additional search parameters. For details, see below.
+
+        Returns:
+            Generator of repository info objects.
+
+        For documentation on search params you can use in `**kwargs`, see:
+        - datasets: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_datasets
+        - models: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_models
+        - spaces: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_spaces
+        - papers: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_papers
+        """
+        return self.search_func(filter=filter, **kwargs)
+
+    return search
+
+
 class HfMapping(Mapping):
     """
     Abstract base class for HuggingFace Mappings.
@@ -258,6 +280,10 @@ class HfMapping(Mapping):
         self.loader_func = staticmethod(config["loader_func"])
         self.search_func = staticmethod(config["search_func"])
 
+        # Create search method with correct signature and bind it to this instance
+        search_method = _create_search_method(config["search_func"])
+        self.search = search_method.__get__(self, type(self))
+
     def __getitem__(self, key):
         """Load/download an item using the configured loader function."""
         return self.loader_func(ensure_id(key))
@@ -278,22 +304,7 @@ class HfMapping(Mapping):
         """Get size (by default, in GiB) of an item from it's key (repo ID)"""
         return get_size(key, unit_bytes=unit_bytes, repo_type=self.repo_type)
 
-    def search(self, filter, **kwargs):
-        """
-        Search for remote repositories that match the query.
-
-        Args:
-            filter: Search query string.
-            **kwargs: Additional search parameters.
-
-        Returns:
-            Generator of repository info objects.
-
-        For documentation on search params you can use in `**kwargs`, see:
-        - for datasets: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_datasets
-        - for models: https://huggingface.co/docs/huggingface_hub/package_reference/hf_api#huggingface_hub.HfApi.list_models
-        """
-        return self.search_func(filter=filter, **kwargs)
+    # Note: search method is dynamically created in __init__ with the correct signature
 
 
 class HfDatasets(HfMapping):
