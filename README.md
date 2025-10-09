@@ -1,8 +1,6 @@
 # hf
 
-Simple MappinThis package offers such a `Mapping`-based façade to all four types of Hugging Face resources—datasets, models, spaces, and papers—allowing you to browse, query, and access them as if they were simple Python dictionaries. The goal isn't to replace the original API, but to provide a thin, ergonomic layer for the most common operations — so you can spend less time remembering syntax, and more time working with data. interface to HuggingFace
-
-This package offers such a `Mapping`-based façade to all four types of Hugging Face resources—datasets, models, spaces, and papers—allowing you to browse, query, and access them as if they were simple Python dictionaries. The goal isn't to replace the original API, but to provide a thin, ergonomic layer for the most common operations — so you can spend less time remembering syntax, and more time working with data.
+Simple Mapping interface to HuggingFace.
 
 To install:	```pip install hf```
 
