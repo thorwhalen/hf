@@ -106,3 +106,7 @@ jobs:
           # IMPORTANT Note: You don't need to specify GITHUB_TOKEN in your repo secrets.
           # GITHUB_TOKEN is special & automatically provided to your workflow run.
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Note: This bit has been added for hf, because of some (new) problems publishing docs.
+      - name: Push to gh-pages
+        run: git push https://x-access-token:${{ secrets.GITHUB_GHPAGES_PAT }}@github.com/thorwhalen/hf.git gh-pages
