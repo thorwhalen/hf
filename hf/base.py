@@ -17,7 +17,9 @@ and remote searching/downloading capabilities.
 import os
 from functools import lru_cache
 from collections.abc import Mapping
+from inspect import Parameter, Signature, signature
 from enum import Enum
+
 from datasets import load_dataset
 from huggingface_hub import (
     scan_cache_dir,
@@ -44,43 +46,6 @@ class RepoType(str, Enum):
 
 DFLT_SIZE_UNIT_BYTES: int = 1024**3  # GiB
 HFAPI_CONFIG = {}
-
-
-def _search_papers_normalized(filter=None, **kwargs):
-    """
-    Wrapper to normalize list_papers interface to use 'filter' parameter like other search functions.
-    Note: list_papers only supports 'query' and 'token' parameters, so other kwargs are filtered out.
-    """
-    # Only pass supported parameters to list_papers
-    supported_kwargs = {}
-    if 'token' in kwargs:
-        supported_kwargs['token'] = kwargs['token']
-
-    return list_papers(query=filter, **supported_kwargs)
-
-
-# Single Source of Truth for repo type configurations
-repo_type_helpers = dict(
-    dataset=dict(
-        loader_func=load_dataset,
-        search_func=list_datasets,
-    ),
-    model=dict(
-        loader_func=snapshot_download,
-        search_func=list_models,
-    ),
-    space=dict(
-        loader_func=space_info,
-        search_func=list_spaces,
-    ),
-    paper=dict(
-        loader_func=paper_info,
-        search_func=_search_papers_normalized,
-    ),
-)
-
-
-from inspect import Parameter, Signature, signature
 
 
 def sign_kwargs_with(source_func, first_arg_index=0):
@@ -132,6 +97,40 @@ def sign_kwargs_with(source_func, first_arg_index=0):
         return target_func
 
     return change_signature_of_variadic
+
+
+def _search_papers_normalized(filter=None, **kwargs):
+    """
+    Wrapper to normalize list_papers interface to use 'filter' parameter like other search functions.
+    Note: list_papers only supports 'query' and 'token' parameters, so other kwargs are filtered out.
+    """
+    # Only pass supported parameters to list_papers
+    supported_kwargs = {}
+    if 'token' in kwargs:
+        supported_kwargs['token'] = kwargs['token']
+
+    return list_papers(query=filter, **supported_kwargs)
+
+
+# Single Source of Truth for repo type configurations
+repo_type_helpers = dict(
+    dataset=dict(
+        loader_func=load_dataset,
+        search_func=list_datasets,
+    ),
+    model=dict(
+        loader_func=snapshot_download,
+        search_func=list_models,
+    ),
+    space=dict(
+        loader_func=space_info,
+        search_func=list_spaces,
+    ),
+    paper=dict(
+        loader_func=paper_info,
+        search_func=_search_papers_normalized,
+    ),
+)
 
 
 # Note: lru_cache brings HfApi instantiation from 300ns to 30ns.
